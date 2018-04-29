@@ -2,6 +2,8 @@ package api;
 import java.sql.*;
 
 public class Database {
+	static Connection conn=null;
+	static PreparedStatement stmt=null;
 	public static String getURL() {
 		return "jdbc:mysql://localhost/DIRSERVICE";
 	}
@@ -34,6 +36,27 @@ public class Database {
 				throw SQL;
 			
 		}
+	 }
+	 
+	 
+	 
+	 public static int getUserID(String username) {
+		 try {
+			conn=Database.getConnection();
+			String selectString = "SELECT USERID FROM USER WHERE USERNAME = ? ";
+			 stmt = conn.prepareStatement(selectString);
+			 stmt.setString(1, username);
+			 ResultSet rs =stmt.executeQuery();
+			if( rs.next())
+			 return rs.getInt("USERID");
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();			
+		}
+		return 0;	
 	 }
 }
 

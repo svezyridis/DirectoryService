@@ -11,13 +11,17 @@
 	<form class="" method="post" action="DirectoriApi">
 		<select name="action">
         			<option>addFriend</option>
+        			<option>getMyGalleries</option>
+        			<option>getFriendGalleries</option>
         		</select>
         		<div class="row username">
+        					token
 	    			<input type="text" id="token" name="token" />
         		</div>
         		
         		<div class="row pass">
-        			<input type="password" id="friendid" name="friendid" />
+        		friendname
+        			<input type="text" id="friendname" name="friendname" />
         		</div>
         		
      

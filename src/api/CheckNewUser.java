@@ -1,32 +1,35 @@
 package api;
 
-import java.io.UnsupportedEncodingException;
-import java.security.GeneralSecurityException;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.json.JSONObject;
 
-import crypto.Token;
 
 public class CheckNewUser {
 	//initialize connection and statement
 	static Connection conn=null;
 	static PreparedStatement stmt=null;
+
+	/**
+	 * Method to get check if a users exist in the database and if not add him.                          
+	 * @param token
+	 * The decrypted token containing user information.          
+	 * @return String: the username of the corresponding token.
+	 */
 	
-	public static void checkIfnewAndadd(JSONObject token) {
+	public static String checkIfnewAndadd(JSONObject token) {
 
 
-		
+		String username= token.getString("userid").split("\\@")[0];
 		System.out.println("Connecting to a selected database...");
 	 try {	 
-		 String username= token.getString("userid").split("\\@")[0];
+		 
 		 JSONObject usermeta=token.getJSONObject("usermeta");
 		 //check if user exists
+		 
 		 conn=Database.getConnection();
 		 System.out.println("Checking if user exists");
 		 String selectString = "SELECT * FROM USER WHERE USERNAME = ? ";
@@ -52,6 +55,7 @@ public class CheckNewUser {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
+	 return username;
 	}
 
 }
