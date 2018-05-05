@@ -13,6 +13,10 @@
         			<option>addFriend</option>
         			<option>getMyGalleries</option>
         			<option>getFriendGalleries</option>
+        			<option>createGallery</option>
+        			<option>deleteImage</option>
+        			<option>deleteFriend</option>
+        			<option>deleteGallery</option>
         		</select>
         		<div class="row username">
         					token
@@ -22,6 +26,14 @@
         		<div class="row pass">
         		friendname
         			<input type="text" id="friendname" name="friendname" />
+        		<div class="row pass">
+        		galleryname
+        			<input type="text" id="friendname" name="galleryname" />
+        		</div>
+        		</div>
+        		<div class="row username">
+        					imageid
+	    			<input type="text" id="imageid" name="imageid" />
         		</div>
         		
      

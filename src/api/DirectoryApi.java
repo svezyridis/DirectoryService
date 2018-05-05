@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONObject;
 import crypto.Token;
 import images.Gallery;
+import images.Image;
 
 /**
  * Servlet implementation class DirectoriApi
@@ -64,25 +65,54 @@ public class DirectoryApi extends HttpServlet {
 		
 		if (action.equals("addFriend")){
 			String friend=request.getParameter("friendname");
-			String result=Friends.addFriend(username, friend);
-			JSONObject resJSON = new JSONObject();
-			resJSON.put("error",result);
+			JSONObject resJSON = Friends.addFriend(username, friend);
 			out.print(resJSON);
 			out.flush();
 			return;
 		}
+		else if(action.equals("deleteFriend")) {
+			String friend=request.getParameter("friendname");
+			JSONObject resJSON = Friends.deleteFriend(username, friend);
+			out.print(resJSON);
+			out.flush();
+			return;	
+		}
 		else if(action.equals("getMyGalleries")) {
-			JSONObject resJSON = Gallery.getGallery(username);
+			JSONObject resJSON = Gallery.getUserGalleries(username);
 			out.print(resJSON);
 			out.flush();
 			return;	
 		}
 		else if(action.equals("getFriendGalleries")) {
 			String friendname =request.getParameter("friendname");
-			JSONObject resJSON = Gallery.getUserGalleries(username, friendname);
+			JSONObject resJSON = Gallery.getFriendGalleries(username, friendname);
 			out.print(resJSON);
 			out.flush();
 			return;	
+		}
+		else if(action.equals("createGallery")) {
+			String galleryname=request.getParameter("galleryname");
+			JSONObject resJSON = Gallery.createGallery(username, galleryname);
+			out.print(resJSON);
+			out.flush();
+			return;
+			
+		}
+		else if(action.equals("deleteGallery")) {
+			String galleryname=request.getParameter("galleryname");
+			JSONObject resJSON = Gallery.deleteGallery(username, galleryname);
+			out.print(resJSON);
+			out.flush();
+			return;
+			
+		}
+		else if(action.equals("deleteImage")) {
+			String imageid=request.getParameter("imageid");
+			JSONObject resJSON = Image.deleteImage(username, imageid);
+			out.print(resJSON);
+			out.flush();
+			return;
+			
 		}
 		
 			

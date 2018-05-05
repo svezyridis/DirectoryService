@@ -43,17 +43,15 @@ public class Database {
 	 public static int getUserID(String username) {
 		 try {
 			conn=Database.getConnection();
-			String selectString = "SELECT USERID FROM USER WHERE USERNAME = ? ";
+			String selectString = "SELECT USERID FROM USERS WHERE USERNAME = ? ";
 			 stmt = conn.prepareStatement(selectString);
 			 stmt.setString(1, username);
 			 ResultSet rs =stmt.executeQuery();
 			if( rs.next())
 			 return rs.getInt("USERID");
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();			
 		}
 		return 0;	

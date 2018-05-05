@@ -32,7 +32,7 @@ public class CheckNewUser {
 		 
 		 conn=Database.getConnection();
 		 System.out.println("Checking if user exists");
-		 String selectString = "SELECT * FROM USER WHERE USERNAME = ? ";
+		 String selectString = "SELECT * FROM USERS WHERE USERNAME = ? ";
 		 
 		 stmt = conn.prepareStatement(selectString);
 		 stmt.setString(1, username);
@@ -40,7 +40,7 @@ public class CheckNewUser {
 		 
 		 //if user does not exist add him
 		 if(!rs.next()) {
-			 String insertString = "INSERT INTO USER"
+			 String insertString = "INSERT INTO USERS"
 						+ "(USERNAME,NAME,NICKNAME) VALUES"
 						+ "(?,?,?)";
 			 stmt = conn.prepareStatement(insertString);
@@ -48,7 +48,16 @@ public class CheckNewUser {
 		      stmt.setString(2, usermeta.getString("name"));
 		      stmt.setString(3, usermeta.getString("nick"));
 		      stmt.executeUpdate();
-		      System.out.println("Inserted records into the table...");
+		      System.out.println("Inserted user into the table...");
+		      int userid=Database.getUserID(username);
+		      insertString = "INSERT INTO GALLERIES"
+						+ "(NAME,OWNER) VALUES"
+						+ "(?,?)";
+			 stmt = conn.prepareStatement(insertString);
+		      stmt.setString(1, "DEFAULT");
+		      stmt.setInt(2, userid);
+		      stmt.executeUpdate();
+		      System.out.println("Created DEFAULT GALLERY...");
 		 }
 	    
 	} catch (ClassNotFoundException | SQLException  e) {
