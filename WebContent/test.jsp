@@ -8,7 +8,7 @@
 </head>
 <body>
 <div>
-	<form class="" method="post" action="DirectoriApi">
+	<form class="" method="post" action="DirectoriApi" enctype="multipart/form-data">
 		<select name="action">
 		             
         			<option value="addFriend">addFriend (token,friendname)</option>
@@ -22,6 +22,7 @@
         			<option value="postComment">postComment(token, imageid, comment)</option>
         			<option value="getGallery">getGallery(token, galleryid)</option>
         			<option value="deleteGallery">deleteGallery(token, galleryname)</option>
+        			<option value="postImage">postimage(token, file)</option>
         		</select>
         		<div class="row username">
         					token
@@ -47,6 +48,10 @@
         		<div class="row username">
         					galleryid
 	    			<input type="text" id="galleryid" name="galleryid" />
+        		</div>
+        		<div>
+        		     imagefile
+        			<input type="file" name="file" />
         		</div>
         		
      

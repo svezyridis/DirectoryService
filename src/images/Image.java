@@ -1,5 +1,9 @@
 package images;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,15 +12,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.Part;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.client.fluent.Content;
+import org.apache.http.client.fluent.Form;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.json.JSONObject;
 
 import api.Database;
 import api.Friends;
 import storage.StorageAPI;
+import zookeeper.Zookeeper;
 
 public class Image {
 	
 	
+	private static final String CHARSET = "UTF-8";
 	static Connection conn=null;
 	static PreparedStatement stmt=null;
 	public static int getImageOwner(int imageid) {
@@ -159,6 +176,36 @@ public class Image {
 		      }
 		   }
 		
+	}
+	public static InputStream postImage(String username,HttpServletRequest request) {
+		
+		try {
+			Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
+		    String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
+		    InputStream fileContent = filePart.getInputStream();
+			HttpEntity entity = MultipartEntityBuilder.create()
+			        .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+			        .setCharset(Charset.forName(CHARSET))
+			        .addBinaryBody("file", fileContent, ContentType.MULTIPART_FORM_DATA, fileName)
+			        .addTextBody("text", fileName)
+			        .build();
+			
+			Content content = Request.Post("http://localhost:8080/DirectoryService/test")
+			        .connectTimeout(2000)
+			        .socketTimeout(2000)
+			        .body(entity)
+			        .execute().returnContent();
+					return content.asStream();
+			
+		} catch (IOException e) {
+			JSONObject token= new JSONObject();
+			token.put("error", e.getMessage());
+			return null;
+		} catch (ServletException e) {
+			JSONObject token= new JSONObject();
+			token.put("error", e.getMessage());
+			return null;
+		}
 	}
 }
 
