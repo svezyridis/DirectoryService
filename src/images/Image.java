@@ -4,33 +4,55 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import org.json.JSONObject;
 
 import api.Database;
+import api.Friends;
+import storage.StorageAPI;
 
 public class Image {
+	
+	
 	static Connection conn=null;
 	static PreparedStatement stmt=null;
+	public static int getImageOwner(int imageid) {
+		 try {
+			conn=Database.getConnection();
+		 
+		 String selectString = "SELECT OWNER FROM IMAGES "
+		 		+ "INNER JOIN GALLERIES ON GALLERY = GALLERYID "
+		 		+ "WHERE IMAGEID = ?"; 
+		 stmt = conn.prepareStatement(selectString);
+		 stmt.setInt(1, imageid);
+		 ResultSet rs =stmt.executeQuery();
+		 if (rs.next()) {
+			 return rs.getInt("OWNER");
+		 }
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+		 return 0;
+		
+	}
 	public static JSONObject deleteImage(String username, String imageid) {
 		int imgid=Integer.parseInt(imageid);
 		int userid=Database.getUserID(username);
 		System.out.println("Connecting to a selected database...");
 		try {
-			// Check if user is the owner of image
-			 conn=Database.getConnection();
-			 String selectString = "SELECT * FROM IMAGES "
-			 		+ "INNER JOIN GALLERIES ON GALLERY = GALLERYID "
-			 		+ "INNER JOIN USERS ON OWNER = USERID "
-			 		+ "WHERE USERID = ? AND IMAGEID = ?"; 
-			 stmt = conn.prepareStatement(selectString);
-			 stmt.setInt(1, userid);
-			 stmt.setInt(2, imgid);
-			 ResultSet rs =stmt.executeQuery();
+			// Check if user is the owner of image	 
+			 int owner =getImageOwner(imgid);
 			 JSONObject resJSON=new JSONObject();
-			 if(rs.next()) {
-				 String updateString = "UPDATE IMAGES SET GALLERY = NULL";
+			 if(owner==userid) {
+				 conn=Database.getConnection();
+				 String updateString = "UPDATE IMAGES SET GALLERY = NULL WHERE IMAGEID = ?";
 				 stmt = conn.prepareStatement(updateString);
+				 stmt.setInt(1, imgid);
 				 stmt.executeUpdate();
 				 resJSON.put("error","" );
 				 return resJSON;
@@ -48,9 +70,96 @@ public class Image {
 			resJSON.put("error", e.getMessage());
 			return resJSON;
 		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 			
 	}
-	
+	public static JSONObject getImages(String username, String galleryid) {
+		int userid=Database.getUserID(username);
+		JSONObject resJSON=new JSONObject();
+		if(galleryid==null || galleryid.equals("")) {
+			resJSON.put("error", "invalid gallery id");
+			return resJSON;
+		}
+		int glryid=Integer.parseInt(galleryid);
+		int owner=Gallery.getOwner(glryid);
+		try {
+			// Check if user (owner) is friend with user (username)
+		
+			 if(Friends.isFriend(owner, userid) || userid==owner) {
+				 conn=Database.getConnection();
+				 String selectString = "SELECT * FROM IMAGES WHERE GALLERY = ? ";
+				 stmt = conn.prepareStatement(selectString);
+				 stmt.setInt(1, glryid);
+				 ResultSet rs =stmt.executeQuery();
+				 
+				 if(!rs.next()) {
+					 resJSON.put("error", "no images found");
+					 return resJSON;
+				 }
+				 rs.beforeFirst();
+				 ArrayList<HashMap<String,String>> images = new ArrayList<HashMap<String,String>>();
+				 HashMap<String,String> image = null;
+				 while (rs.next()) {
+					 image = new HashMap<String,String>();
+					 image.put("imageURL", StorageAPI.getURL(rs.getInt("IMAGEID")));
+					 image.put("timestamp",rs.getTimestamp("TIMESTAMP").toString());
+					 image.put("id", rs.getString("IMAGEID"));
+					 images.add(image);		 
+				 }
+				 List<JSONObject> jsonList = new ArrayList<JSONObject>();
+
+				 for(HashMap<String, String> data : images) {
+				     JSONObject obj = new JSONObject(data);
+				     int id = obj.getInt("id");
+				     obj.put("comments",Comments.getComments(id) );
+				     jsonList.add(obj);
+				 }
+				 
+				 resJSON.put("error", "");
+				 resJSON.put("result", jsonList);
+				 return resJSON;
+			 }
+			 resJSON.put("error", "You dont have access rights to this gallery");
+				return resJSON;
+			 
+			
+		} catch (SQLException e) {
+			
+			resJSON.put("error", e.getMessage());
+			return resJSON;
+		} catch (ClassNotFoundException e) {
+			resJSON.put("error", e.getMessage());
+			return resJSON;
+		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
+		
+	}
 }
 
 

@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.*;
 import org.json.JSONObject;
 import api.Database;
+import api.Friends;
 
 
 public class Gallery {
@@ -41,6 +42,7 @@ public class Gallery {
 				 gallery = new HashMap<String,String>();
 				 gallery.put("galleryid", rs.getString("GALLERYID"));
 				 gallery.put("galleryname", rs.getString("NAME"));
+				 gallery.put("timestamp",rs.getTimestamp("TIMESTAMP").toString());
 				 galleries.add(gallery);		 
 			 }
 			 List<JSONObject> jsonList = new ArrayList<JSONObject>();
@@ -65,6 +67,20 @@ public class Gallery {
 			 resJSON.put("error", e.getMessage());
 			 return resJSON;
 		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 		
 		
 	}
@@ -77,36 +93,16 @@ public class Gallery {
 			resJSON.put("error","User "+friendname+" does not exist");
 			return resJSON;
 		}
-		try {
 			// Check if user (friendname) is friend with user (username)
-			 conn=Database.getConnection();
-			 String selectString = "SELECT FRIENDSHIPID FROM FRIENDSHIPS WHERE USERID = ? AND FRIENDID = ?  ";
-			 stmt = conn.prepareStatement(selectString);
-			 stmt.setInt(1, friendid);
-			 stmt.setInt(2, userid);
-			 ResultSet rs =stmt.executeQuery();
 			 JSONObject resJSON=new JSONObject();
-			 if(rs.next()) {
-				 JSONObject JSON = Gallery.getUserGalleries(friendname);
-				 resJSON.put("result", JSON);
-				 return resJSON;
+			 if(Friends.isFriend(friendid, userid) || friendid==userid) {
+				 return  Gallery.getUserGalleries(friendname);
+
 			 }
 			 resJSON.put("error", "You dont have access rights to user's "+friendname+" galleries");
 				return resJSON;
-			 
-			
-		} catch (ClassNotFoundException e) {
-			JSONObject resJSON=new JSONObject();
-			resJSON.put("error", e.getMessage());
-			return resJSON;
-		} catch (SQLException e) {
-			JSONObject resJSON=new JSONObject();
-			resJSON.put("error", e.getMessage());
-			return resJSON;
-		}
-		
-		
 	}
+			 
 
 	public static JSONObject createGallery(String username, String galleryname) {
 		if(galleryname==null || galleryname.equals("")) {
@@ -143,7 +139,21 @@ public class Gallery {
 			 JSONObject resJSON = new JSONObject();
 			 resJSON.put("error",e.getMessage());
 			 return resJSON;
-		 }		 
+		 }
+		 finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 		 JSONObject resJSON = new JSONObject();
 		 resJSON.put("error","");
 		 return resJSON;
@@ -180,8 +190,40 @@ public class Gallery {
 			resJSON.put("error", e.getMessage());
 			return resJSON;
 		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 		
 	}
-
+	public static int getOwner(int galleryid) {
+		try {
+			conn=Database.getConnection();
+		 
+		 String selectString = "SELECT OWNER FROM GALLERIES "
+		 		+ "WHERE GALLERYID = ?"; 
+		 stmt = conn.prepareStatement(selectString);
+		 stmt.setInt(1, galleryid);
+		 ResultSet rs =stmt.executeQuery();
+		 if (rs.next()) {
+			 return rs.getInt("OWNER");
+		 }
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+		 return 0;
+	}
 }
 

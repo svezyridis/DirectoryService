@@ -10,13 +10,18 @@
 <div>
 	<form class="" method="post" action="DirectoriApi">
 		<select name="action">
-        			<option>addFriend</option>
-        			<option>getMyGalleries</option>
-        			<option>getFriendGalleries</option>
-        			<option>createGallery</option>
-        			<option>deleteImage</option>
-        			<option>deleteFriend</option>
-        			<option>deleteGallery</option>
+		             
+        			<option value="addFriend">addFriend (token,friendname)</option>
+        			<option value="getMyGalleries">getMyGalleries(token)</option>
+        			<option value="getFriendGalleries">getFriendGalleries(token,friendname)</option>
+        			<option value="createGallery">createGallery(token,galleryname)</option>
+        			<option value="deleteImage">deleteImage(token,imageid)</option>
+        			<option value="deleteFriend">deleteFriend(token,friendname)</option>
+        			<option value ="getFriends">getFriends(token)</option>
+        			<option value ="deleteGallery">deleteGallery(token,galleryname)</option>
+        			<option value="postComment">postComment(token, imageid, comment)</option>
+        			<option value="getGallery">getGallery(token, galleryid)</option>
+        			<option value="deleteGallery">deleteGallery(token, galleryname)</option>
         		</select>
         		<div class="row username">
         					token
@@ -34,6 +39,14 @@
         		<div class="row username">
         					imageid
 	    			<input type="text" id="imageid" name="imageid" />
+        		</div>
+        		<div class="row username">
+        					comment
+	    			<input type="text" id="comment" name="comment" />
+        		</div>
+        		<div class="row username">
+        					galleryid
+	    			<input type="text" id="galleryid" name="galleryid" />
         		</div>
         		
      

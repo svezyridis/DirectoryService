@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.json.JSONObject;
 import crypto.Token;
+import images.Comments;
 import images.Gallery;
 import images.Image;
 
@@ -77,6 +78,12 @@ public class DirectoryApi extends HttpServlet {
 			out.flush();
 			return;	
 		}
+		else if(action.equals("getFriends")) {
+			JSONObject resJSON = Friends.getFriends(username);
+			out.print(resJSON);
+			out.flush();
+			return;	
+		}
 		else if(action.equals("getMyGalleries")) {
 			JSONObject resJSON = Gallery.getUserGalleries(username);
 			out.print(resJSON);
@@ -113,6 +120,21 @@ public class DirectoryApi extends HttpServlet {
 			out.flush();
 			return;
 			
+		}
+		else if(action.equals("postComment")) {
+			String imageid=request.getParameter("imageid");
+			String comment=request.getParameter("comment");			
+			JSONObject resJSON = Comments.postComment(username,imageid,comment);
+			out.print(resJSON);
+			out.flush();
+			return;		
+		}
+		else if(action.equals("getGallery")) {
+			String galleryid=request.getParameter("galleryid");			
+			JSONObject resJSON = Image.getImages(username, galleryid);
+			out.print(resJSON);
+			out.flush();
+			return;		
 		}
 		
 			

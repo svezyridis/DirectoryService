@@ -7,7 +7,9 @@ import images.Gallery;
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import java.sql.*;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -77,6 +79,20 @@ public class Friends {
 		 resJSON.put("error",e.getMessage());
 		 return resJSON;
 	 }
+	 finally{
+	      //finally block used to close resources
+	      try{
+	         if(stmt!=null)
+	            conn.close();
+	      }catch(SQLException se){
+	      }
+	      try{
+	         if(conn!=null)
+	            conn.close();
+	      }catch(SQLException se){
+	         se.printStackTrace();
+	      }
+	   }
 	 
 		 
 	 JSONObject resJSON = new JSONObject();
@@ -127,9 +143,103 @@ public class Friends {
 			resJSON.put("error", e.getMessage());
 			return resJSON;
 		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 		
 	}
-	
+
+	public static JSONObject getFriends(String username) {
+		try {
+			
+			 int userid=Database.getUserID(username);
+			 conn=Database.getConnection();
+			 String selectString = "SELECT USERS.USERID, USERNAME FROM FRIENDSHIPS "
+			 		+ "INNER JOIN USERS ON FRIENDID = USERS.USERID"
+			 		+ " WHERE FRIENDSHIPS.USERID = ? ";
+			 stmt = conn.prepareStatement(selectString);
+			 stmt.setInt(1, userid);
+			 ResultSet rs =stmt.executeQuery();
+			 
+			 if(!rs.next()) {
+				 JSONObject resJSON=new JSONObject();
+				 resJSON.put("error", "no friends found for user "+ username);
+				 return resJSON;
+			 }
+			 rs.beforeFirst();
+			 ArrayList<HashMap<String,String>> friends = new ArrayList<HashMap<String,String>>();
+			 HashMap<String,String> friend = null;
+			 while (rs.next()) {
+				 friend = new HashMap<String,String>();
+				 friend.put("friendid", rs.getString("USERID"));
+				 friend.put("friendname", rs.getString("USERNAME"));
+				 friends.add(friend);		 
+			 }
+			 List<JSONObject> jsonList = new ArrayList<JSONObject>();
+
+			 for(HashMap<String, String> data : friends) {
+			     JSONObject obj = new JSONObject(data);
+			     jsonList.add(obj);
+			 }
+			 
+			 JSONObject resJSON=new JSONObject();
+			 resJSON.put("error", "");
+			 resJSON.put("result", jsonList);
+			 return resJSON;
+			 
+		} catch ( SQLException e) {
+			JSONObject resJSON=new JSONObject();
+			 resJSON.put("error", e.getMessage());
+			 return resJSON;
+		} catch (ClassNotFoundException e) {
+			JSONObject resJSON=new JSONObject();
+			
+			 resJSON.put("error", e.getMessage());
+			 return resJSON;
+		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
+		
+
+	}
+	public static boolean isFriend(int userid, int friendid) {
+		try {
+			conn=Database.getConnection();
+			String selectString = "SELECT FRIENDSHIPID FROM FRIENDSHIPS WHERE USERID = ? AND FRIENDID = ?  ";
+			 stmt = conn.prepareStatement(selectString);
+			 stmt.setInt(1, userid);
+			 stmt.setInt(2, friendid);
+			 ResultSet rs =stmt.executeQuery();
+			 return rs.next();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		 
+	}
 	
 
 }

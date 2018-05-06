@@ -53,7 +53,7 @@ public class CheckNewUser {
 		      insertString = "INSERT INTO GALLERIES"
 						+ "(NAME,OWNER) VALUES"
 						+ "(?,?)";
-			 stmt = conn.prepareStatement(insertString);
+			  stmt = conn.prepareStatement(insertString);
 		      stmt.setString(1, "DEFAULT");
 		      stmt.setInt(2, userid);
 		      stmt.executeUpdate();
@@ -64,6 +64,20 @@ public class CheckNewUser {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
+	 finally{
+	      //finally block used to close resources
+	      try{
+	         if(stmt!=null)
+	            conn.close();
+	      }catch(SQLException se){
+	      }
+	      try{
+	         if(conn!=null)
+	            conn.close();
+	      }catch(SQLException se){
+	         se.printStackTrace();
+	      }
+	   }
 	 return username;
 	}
 
