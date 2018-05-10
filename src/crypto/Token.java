@@ -9,7 +9,7 @@ import org.json.JSONObject;
 public class Token {
 	public static JSONObject getDecryptedToken(String JSONString) throws GeneralSecurityException,UnsupportedEncodingException  {
 
-		String sharedKeyBase64 = zookeeper.Zookeeper.getKey(); 
+		String sharedKeyBase64 = zookeeper.Configuration.getKey(); 
 		byte[] sharedKey = Base64.getDecoder().decode(sharedKeyBase64);
 		String decrypted = null;
 		String cipher = "AES/CBC/PKCS5Padding";

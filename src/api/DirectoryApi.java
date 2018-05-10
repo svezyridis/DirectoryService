@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
+import javax.servlet.jsp.PageContext;
 
 import org.json.JSONObject;
 import crypto.Token;
@@ -163,6 +164,11 @@ public class DirectoryApi extends HttpServlet {
 			InputStream fileContent=Image.postImage(username, request);
 			BufferedImage image=ImageIO.read(fileContent);
 		    ImageIO.write(image, "JPG", response.getOutputStream());
+		    return;
+		}
+		else if(action.equals("test")) {
+		
+	
 		}
 			
 		response.getWriter().append("Served at: ").append(request.getContextPath());

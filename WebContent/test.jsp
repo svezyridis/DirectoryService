@@ -23,6 +23,7 @@
         			<option value="getGallery">getGallery(token, galleryid)</option>
         			<option value="deleteGallery">deleteGallery(token, galleryname)</option>
         			<option value="postImage">postimage(token, file)</option>
+        			<option value="test">test()</option>
         		</select>
         		<div class="row username">
         					token
