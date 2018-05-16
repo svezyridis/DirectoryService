@@ -7,6 +7,8 @@
     	<dirservicepath>/DirServices</dirservicepath>
     	<authservicepath>/AuthServices</authservicepath>
     	<storageservicepath>/StorageServices</storageservicepath>
+    	<zoouser>savvas</zoouser>
+    	<zoopass>savvas</zoopass>
     </zookeeper>
     <identifier>DIRID</identifier>
     <key>7vjTsO0IhSZsNA6ze37Dk/xXw2nphFM9ZAMUkwXgaAA=</key>

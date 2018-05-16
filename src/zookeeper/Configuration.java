@@ -5,7 +5,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -15,6 +19,10 @@ import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
 import org.apache.zookeeper.*;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
+import org.apache.zookeeper.data.Stat;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -37,16 +45,26 @@ public class Configuration implements ServletContextListener {
 	private static String dirpath;
 	private static String authpath;
 	private static String strgpath;
+	private static String zoouser; 
+	private static String zoopass; 
+	private static ZooKeeper zoo;
+	private List<String> fsList = null;
+	final CountDownLatch connectedSignal = new CountDownLatch(1);
+	private static Configuration ConfInstance = null;
+	
 	
 	public static String getKey() {
 		return secretkey;
 	}
+	
 	public static String getMyIdentifier() {
 		return identifier;
 	}
+	
 	public static String getMyIP() {
 		return myip;
 	}
+	
 	public static String getZookeeperIPs(){
 		String host="";
 		boolean first=true;
@@ -60,21 +78,64 @@ public class Configuration implements ServletContextListener {
 		}
 		return host;
 	}
-
-	   
 	
-
-
-	@Override
-	public void contextDestroyed(ServletContextEvent arg0) {
-		 System.err.println("Fileservice Context destroyed");
-		 //TODO close zookeeper connection
-
+	private ZooKeeper zooConnect() throws IOException,InterruptedException {
+		System.err.println("start zooConnect");
 		
-	}
+		ZooKeeper zk = new ZooKeeper(getZookeeperIPs(), 3000, new Watcher() {
+			@Override
+			public void process(WatchedEvent we) {
+				if (we.getState() == KeeperState.SyncConnected) {
+					connectedSignal.countDown();
+				}
+			}
+		});
+		connectedSignal.await();
+		
+		//zk.addAuthInfo("digest", new String(zoouser+":"+zoopass).getBytes()); 
+		
+		System.out.println("finished zooConnect");
 
-	@Override
-	public void contextInitialized(ServletContextEvent sce) {
+		return zk;
+	}
+	
+class FsWatcher implements Watcher {
+        
+        public void process(WatchedEvent event) {
+            System.err.println("Watcher triggered");
+			Watcher watcher = new FsWatcher();
+			watchForFsChanges(watcher);
+        }
+    }
+
+	private void initFsWatches() {
+		fsList = Collections.synchronizedList(new ArrayList<String>());
+		Watcher watcher = new FsWatcher();
+		watchForFsChanges(watcher);
+	}
+	
+	
+	private void watchForFsChanges(Watcher watcher) {
+		// we want to get the list of available FS, and watch for changes
+		try {
+			fsList.clear();
+			List<String> fsChildren = zoo.getChildren("/DirServices", watcher);
+			for (String fs : fsChildren) {
+				// TODO: need probably also it's associated data
+				fsList.add(fs);
+			}
+		}
+		catch (KeeperException ex) {
+			System.err.println("getStatusText KeeperException "+ex.getMessage());
+		}
+		catch (InterruptedException ex) {
+			System.err.println("getStatusText InterruptedException");
+		}
+		for(String f:fsList) {
+			System.out.println(f);
+		}
+	}
+	public void ReadConfigurationFile() {
 		URL resource = getClass().getResource("/");
 		String path = resource.getPath();
 		path = path.replace("WEB-INF/classes/", "conf/config.xml");
@@ -98,6 +159,8 @@ public class Configuration implements ServletContextListener {
 	            dirpath=setting.getChild("dirservicepath").getValue();
 	            authpath=setting.getChild("authservicepath").getValue();
 	            strgpath=setting.getChild("storageservicepath").getValue();
+	            zoouser=setting.getChild("zoouser").getValue();
+	            zoopass=setting.getChild("zoopass").getValue();
 	            identifier=classElement.getChild("identifier").getValue();    
 	            secretkey=classElement.getChild("key").getValue();
 	        
@@ -108,6 +171,23 @@ public class Configuration implements ServletContextListener {
 	         } catch(IOException ioe) {
 	            ioe.printStackTrace();
 	         }
+		
+	}
+	
+	public void PublishService(ServletContextEvent sce) {
+		ACL acl = new ACL();
+		try {
+			String base64EncodedSHA1Digest = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA1").
+					digest((zoopass).getBytes()));
+			acl.setPerms(ZooDefs.Perms.ALL);
+			acl.setId(new Id("digest",zoouser+":"+base64EncodedSHA1Digest));
+		}
+		catch (NoSuchAlgorithmException ex) {
+			System.err.println("destroy NoSuchAlgorithmException");
+		}
+		List<ACL> aclList=new ArrayList<ACL>();
+		aclList.add(acl);
+		
 	       try {
 			myip= InetAddress.getLocalHost().toString();
 			myip=myip+"/"+sce.getServletContext().getServletContextName();
@@ -121,26 +201,61 @@ public class Configuration implements ServletContextListener {
 	       configJSON.put("key", secretkey);
 	       configJSON.put("id", identifier);
 	       
-	       
-	       
+	       System.out.println("trying to connect to zookeeper");  
 	       try {
-	    	   System.out.println("trying to connect to zookeeper");  
-			
-			System.out.println("Checking if "+dirpath+" node exists");
-			if(!Zookeeper.NodeExists(dirpath)) {
-				Zookeeper.CreatePersistent(dirpath, "");
+			zoo = zooConnect();
+			Stat stat = zoo.exists(dirpath, false);
+			if(stat==null) {
+				System.out.println("Node does not exist, creating node");
+				zoo.create(dirpath, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+						CreateMode.PERSISTENT);
 			}
-			Zookeeper.Create(dirpath+"/"+identifier+"2",configJSON.toString());
-			
-		} catch (KeeperException | InterruptedException e) {
+			zoo.create(dirpath+"/"+identifier+"2", configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
+					CreateMode.EPHEMERAL);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (KeeperException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	 
-	       
-	       
-	      
-	       
+	}
+	public static Configuration getInstance() {
+		if (ConfInstance == null) {
+			ConfInstance = new Configuration();
+		}
+		return ConfInstance;
+	}
+
+	
+	@Override
+	public void contextDestroyed(ServletContextEvent arg0) {
+		 System.err.println("Fileservice Context destroyed");
+		 //TODO close zookeeper connection
+
+		
+	}
+
+	@Override
+	public void contextInitialized(ServletContextEvent sce) {
+		ReadConfigurationFile();
+		Configuration instance = getInstance();
+		try {
+			instance.zoo = instance.zooConnect();
+			instance.PublishService(sce);
+			instance.initFsWatches();
+	  
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	    }
 	
 		

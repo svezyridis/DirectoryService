@@ -28,7 +28,7 @@ import org.json.JSONObject;
 import api.Database;
 import api.Friends;
 import storage.StorageAPI;
-import zookeeper.Zookeeper;
+
 
 public class Image {
 	
