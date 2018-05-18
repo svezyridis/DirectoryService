@@ -23,6 +23,7 @@ import crypto.Token;
 import images.Comments;
 import images.Gallery;
 import images.Image;
+import zookeeper.Configuration;
 
 /**
  * Servlet implementation class DirectoriApi
@@ -167,6 +168,9 @@ public class DirectoryApi extends HttpServlet {
 		    return;
 		}
 		else if(action.equals("test")) {
+			String nonce=request.getParameter("comment");
+			Configuration instance=zookeeper.Configuration.getInstance();
+			instance.AddNode(nonce);
 		
 	
 		}

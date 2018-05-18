@@ -10,10 +10,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import javax.servlet.ServletContext;
+
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
@@ -29,7 +31,6 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 import org.json.JSONObject;
 
-import java.io.*;
 
 
 /**
@@ -39,48 +40,59 @@ import java.io.*;
 @WebListener
 public class Configuration implements ServletContextListener {
 	private static  List<String> zookeeperIPs = new ArrayList<String>();
+	private String host="";
 	private static  String myip;
 	private static String identifier;
 	private static String secretkey;
+	private static String name;
 	private static String dirpath;
 	private static String authpath;
 	private static String strgpath;
 	private static String zoouser; 
 	private static String zoopass; 
-	private static ZooKeeper zoo;
+	private  ZooKeeper zoo;
 	private List<String> fsList = null;
+	private List<Map> Systems=new ArrayList<Map>();
 	final CountDownLatch connectedSignal = new CountDownLatch(1);
 	private static Configuration ConfInstance = null;
 	
+	public static List<Map> getAvailableFs() {
+		Configuration instance = getInstance();
+		return instance.Systems;
+	}	
 	
 	public static String getKey() {
-		return secretkey;
+		Configuration instance = getInstance();
+		return instance.secretkey;
 	}
 	
 	public static String getMyIdentifier() {
-		return identifier;
+		Configuration instance = getInstance();
+		return instance.identifier;
 	}
 	
 	public static String getMyIP() {
-		return myip;
+		Configuration instance = getInstance();
+		return instance.myip;
 	}
 	
 	public static String getZookeeperIPs(){
-		String host="";
+		Configuration instance = getInstance();
+		
 		boolean first=true;
 		for (String ip:zookeeperIPs) {
 			if (first) {
-				host+=ip;
+				instance.host+=ip;
 				first =false;
 			}
 			else
-				host=host+","+ip;				
+				instance.host=instance.host+","+ip;				
 		}
-		return host;
+		return instance.host;
 	}
 	
 	private ZooKeeper zooConnect() throws IOException,InterruptedException {
-		System.err.println("start zooConnect");
+		System.out.println("start zooConnect on "+getZookeeperIPs());
 		
 		ZooKeeper zk = new ZooKeeper(getZookeeperIPs(), 3000, new Watcher() {
 			@Override
@@ -92,13 +104,17 @@ public class Configuration implements ServletContextListener {
 		});
 		connectedSignal.await();
 		
-		//zk.addAuthInfo("digest", new String(zoouser+":"+zoopass).getBytes()); 
+		//zk.addAuthInfo("digest", new String(zoouser+":"+zoopass).getBytes());
 		
 		System.out.println("finished zooConnect");
 
 		return zk;
 	}
-	
+
+	public static ZooKeeper getZooConnection() {
+		Configuration instance = getInstance();
+		return instance.zoo;
+	}
 class FsWatcher implements Watcher {
         
         public void process(WatchedEvent event) {
@@ -117,12 +133,21 @@ class FsWatcher implements Watcher {
 	
 	private void watchForFsChanges(Watcher watcher) {
 		// we want to get the list of available FS, and watch for changes
+		Configuration instance = getInstance();
 		try {
 			fsList.clear();
-			List<String> fsChildren = zoo.getChildren("/DirServices", watcher);
+			List<String> fsChildren = zoo.getChildren(authpath, watcher);
+			
 			for (String fs : fsChildren) {
-				// TODO: need probably also it's associated data
-				fsList.add(fs);
+				Map<String,String> system = null;
+				Stat stat = zoo.exists(authpath+"/"+fs, watcher);
+				byte[] data=zoo.getData(authpath+"/"+fs, watcher, stat);
+				JSONObject datajson=new JSONObject(new String(data));
+				system=new HashMap<String,String>();
+				system.put("name", datajson.getString("name"));
+				system.put("identifier", datajson.getString("id"));
+				system.put("keybase64", datajson.getString("key"));
+				instance.Systems.add(system);	
 			}
 		}
 		catch (KeeperException ex) {
@@ -131,11 +156,10 @@ class FsWatcher implements Watcher {
 		catch (InterruptedException ex) {
 			System.err.println("getStatusText InterruptedException");
 		}
-		for(String f:fsList) {
-			System.out.println(f);
-		}
+		
 	}
 	public void ReadConfigurationFile() {
+		Configuration instance=getInstance();
 		URL resource = getClass().getResource("/");
 		String path = resource.getPath();
 		path = path.replace("WEB-INF/classes/", "conf/config.xml");
@@ -152,17 +176,18 @@ class FsWatcher implements Watcher {
 		                  + setting.getName());
 	            List<Element>ips=setting.getChildren("zooip");
 	            for(Element ip:ips) {
-	            	zookeeperIPs.add(ip.getValue().toString());
+	            	instance.zookeeperIPs.add(ip.getValue().toString());
 	                
 	            	
 	            }
-	            dirpath=setting.getChild("dirservicepath").getValue();
-	            authpath=setting.getChild("authservicepath").getValue();
-	            strgpath=setting.getChild("storageservicepath").getValue();
-	            zoouser=setting.getChild("zoouser").getValue();
-	            zoopass=setting.getChild("zoopass").getValue();
-	            identifier=classElement.getChild("identifier").getValue();    
-	            secretkey=classElement.getChild("key").getValue();
+	            instance.dirpath=setting.getChild("dirservicepath").getValue();
+	            instance.authpath=setting.getChild("authservicepath").getValue();
+	            instance.strgpath=setting.getChild("storageservicepath").getValue();
+	            instance.zoouser=setting.getChild("zoouser").getValue();
+	            instance.zoopass=setting.getChild("zoopass").getValue();
+	            instance.identifier=classElement.getChild("identifier").getValue();    
+	            instance.secretkey=classElement.getChild("key").getValue();
+	            instance.name=classElement.getChild("name").getValue();
 	        
 
 	            
@@ -173,8 +198,25 @@ class FsWatcher implements Watcher {
 	         }
 		
 	}
-	
+	public void AddNode(String nonce){
+		Configuration instance=getInstance();
+		JSONObject configJSON=new JSONObject();
+	       configJSON.put("URL", instance.myip);
+	       configJSON.put("key", instance.secretkey);
+	       configJSON.put("id", instance.identifier);
+	       try {
+			instance.zoo.create(dirpath+"/"+identifier+nonce, configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
+						CreateMode.EPHEMERAL);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public void PublishService(ServletContextEvent sce) {
+		Configuration instance=getInstance();
 		ACL acl = new ACL();
 		try {
 			String base64EncodedSHA1Digest = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA1").
@@ -189,32 +231,29 @@ class FsWatcher implements Watcher {
 		aclList.add(acl);
 		
 	       try {
-			myip= InetAddress.getLocalHost().toString();
-			myip=myip+"/"+sce.getServletContext().getServletContextName();
-			System.out.println(myip);
+			instance.myip= InetAddress.getLocalHost().toString();
+			instance.myip=instance.myip+"/"+sce.getServletContext().getServletContextName();
+			System.out.println(instance.myip);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	       JSONObject configJSON=new JSONObject();
-	       configJSON.put("URL", myip);
-	       configJSON.put("key", secretkey);
-	       configJSON.put("id", identifier);
+	       configJSON.put("URL", instance.myip);
+	       configJSON.put("key", instance.secretkey);
+	       configJSON.put("id", instance.identifier);
+	       configJSON.put("name", instance.name);
 	       
-	       System.out.println("trying to connect to zookeeper");  
+	       System.out.println("publishing service");  
 	       try {
-			zoo = zooConnect();
-			Stat stat = zoo.exists(dirpath, false);
+			Stat stat = instance.zoo.exists(dirpath, false);
 			if(stat==null) {
 				System.out.println("Node does not exist, creating node");
-				zoo.create(dirpath, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+				instance.zoo.create(dirpath, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
 						CreateMode.PERSISTENT);
 			}
-			zoo.create(dirpath+"/"+identifier+"2", configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
+			instance.zoo.create(dirpath+"/"+identifier+"2", configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
 					CreateMode.EPHEMERAL);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -233,16 +272,25 @@ class FsWatcher implements Watcher {
 	
 	@Override
 	public void contextDestroyed(ServletContextEvent arg0) {
-		 System.err.println("Fileservice Context destroyed");
-		 //TODO close zookeeper connection
+		 System.err.println("Dirservice Context destroyed");
+		 Configuration instance = getInstance();
+			try {
+				if (instance.zoo != null) {
+					instance.zoo.close();
+				}
+			}
+			catch ( InterruptedException ex) {
+				System.err.println("destroy InterruptedException");
+			}
 
 		
 	}
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
-		ReadConfigurationFile();
 		Configuration instance = getInstance();
+		instance.ReadConfigurationFile();
+	
 		try {
 			instance.zoo = instance.zooConnect();
 			instance.PublishService(sce);
