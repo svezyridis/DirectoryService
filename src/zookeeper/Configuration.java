@@ -31,6 +31,8 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 import org.json.JSONObject;
 
+import storage.FileServices;
+
 
 
 /**
@@ -135,19 +137,18 @@ class FsWatcher implements Watcher {
 		// we want to get the list of available FS, and watch for changes
 		Configuration instance = getInstance();
 		try {
-			fsList.clear();
-			List<String> fsChildren = zoo.getChildren(authpath, watcher);
-			
+			Systems.clear();
+			List<String> fsChildren = zoo.getChildren(strgpath, watcher);
 			for (String fs : fsChildren) {
 				Map<String,String> system = null;
-				Stat stat = zoo.exists(authpath+"/"+fs, watcher);
-				byte[] data=zoo.getData(authpath+"/"+fs, watcher, stat);
+				Stat stat = zoo.exists(strgpath+"/"+fs, watcher);
+				byte[] data=zoo.getData(strgpath+"/"+fs, watcher, stat);
 				JSONObject datajson=new JSONObject(new String(data));
 				system=new HashMap<String,String>();
-				system.put("name", datajson.getString("name"));
 				system.put("identifier", datajson.getString("id"));
+				system.put("URL", datajson.getString("URL"));
 				system.put("keybase64", datajson.getString("key"));
-				instance.Systems.add(system);	
+				Systems.add(system);	
 			}
 		}
 		catch (KeeperException ex) {
@@ -172,11 +173,12 @@ class FsWatcher implements Watcher {
 	            Element classElement = document.getRootElement();
 	            System.out.println("----------------------------");
 	            Element setting=classElement.getChild("zookeeper");
-	            System.out.println("\nCurrent Element :" 
+	            System.out.println("\nCurrent Element dirservice :" 
 		                  + setting.getName());
 	            List<Element>ips=setting.getChildren("zooip");
 	            for(Element ip:ips) {
 	            	instance.zookeeperIPs.add(ip.getValue().toString());
+	            	System.out.println(ip.getValue().toString());
 	                
 	            	
 	            }
@@ -295,6 +297,7 @@ class FsWatcher implements Watcher {
 			instance.zoo = instance.zooConnect();
 			instance.PublishService(sce);
 			instance.initFsWatches();
+			FileServices.updateDB();
 	  
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

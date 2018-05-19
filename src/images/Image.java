@@ -27,7 +27,7 @@ import org.json.JSONObject;
 
 import api.Database;
 import api.Friends;
-import storage.StorageAPI;
+import storage.Storage;
 
 
 public class Image {
@@ -113,7 +113,7 @@ public class Image {
 		int glryid=Integer.parseInt(galleryid);
 		int owner=Gallery.getOwner(glryid);
 		try {
-			// Check if user (owner) is friend with user (username)
+			// Check if user (owner) is friend with user (username) or is the owner of the gallery
 		
 			 if(Friends.isFriend(owner, userid) || userid==owner) {
 				 conn=Database.getConnection();
@@ -129,12 +129,20 @@ public class Image {
 				 rs.beforeFirst();
 				 ArrayList<HashMap<String,String>> images = new ArrayList<HashMap<String,String>>();
 				 HashMap<String,String> image = null;
+				 resJSON.put("error", "");
 				 while (rs.next()) {
+					 
 					 image = new HashMap<String,String>();
-					 image.put("imageURL", StorageAPI.getURL(rs.getInt("IMAGEID")));
-					 image.put("timestamp",rs.getTimestamp("TIMESTAMP").toString());
-					 image.put("id", rs.getString("IMAGEID"));
-					 images.add(image);		 
+					 String URL=Storage.getURL(rs.getInt("IMAGEID"));
+					 if(URL==null)
+						 resJSON.put("error", "URLs for one or more images could not be loaded");
+						 
+					 if (URL!=null) {
+						 image.put("imageURL", URL);
+						 image.put("timestamp",rs.getTimestamp("TIMESTAMP").toString());
+						 image.put("id", rs.getString("IMAGEID"));
+						 images.add(image);
+					 }
 				 }
 				 List<JSONObject> jsonList = new ArrayList<JSONObject>();
 
@@ -144,8 +152,7 @@ public class Image {
 				     obj.put("comments",Comments.getComments(id) );
 				     jsonList.add(obj);
 				 }
-				 
-				 resJSON.put("error", "");
+			
 				 resJSON.put("result", jsonList);
 				 return resJSON;
 			 }
