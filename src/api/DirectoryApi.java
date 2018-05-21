@@ -7,6 +7,8 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletException;
@@ -161,11 +163,35 @@ public class DirectoryApi extends HttpServlet {
 			return;		
 		}
 		else if(action.equals("postImage")) {
-			response.setContentType("image/jpg");
-			InputStream fileContent=Image.postImage(username, request);
-			BufferedImage image=ImageIO.read(fileContent);
-		    ImageIO.write(image, "JPG", response.getOutputStream());
-		    return;
+			JSONObject resJSON =Image.postImage(username, request);
+			PrintWriter out = response.getWriter();
+			out.print(resJSON);
+			out.flush();
+			int i=0;
+			
+			/*while(i<30) {
+			        if (resJSON!=null) {
+			            break;
+			        } else {
+			            try {
+							TimeUnit.SECONDS.sleep(1);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+			            ++i;
+			            if (i == 30) {
+			                try {
+								throw new TimeoutException("Timed out after waiting for " + i + " seconds");
+							} catch (TimeoutException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+			            }
+			
+			       }	
+		    }*/
+			return;
 		}
 		else if(action.equals("test")) {
 			String nonce=request.getParameter("comment");

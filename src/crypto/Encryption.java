@@ -1,4 +1,5 @@
 package crypto;
+import java.io.UnsupportedEncodingException;
 import java.security.*;
 import java.util.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -47,5 +48,16 @@ public class Encryption {
 		}
 		return null;
 	}
+	
+	public static String hmac(String plainText, String sharedkey) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException {
+		byte[] sharedKeyBytes=Base64.getDecoder().decode(sharedkey);
+		SecretKeySpec hks = new SecretKeySpec(sharedKeyBytes, "HmacSHA256");
+		Mac m = Mac.getInstance("HmacSHA256");
+		m.init(hks);
+		byte[] plainTextBytes=plainText.getBytes("UTF-8");
+		byte[] hmac = m.doFinal(plainTextBytes);
+		return Base64.getEncoder().encodeToString(hmac);
+	}
+
 
 }

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,10 +25,12 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.json.JSONObject;
 
 import api.Database;
 import api.Friends;
+import crypto.Encryption;
 import storage.Storage;
 
 
@@ -184,36 +188,61 @@ public class Image {
 		   }
 		
 	}
-	public static InputStream postImage(String username,HttpServletRequest request) {
-		
+	public static JSONObject postImage(String username,HttpServletRequest request) {
+		String validtill=Integer.toString((int)(System.currentTimeMillis()/1000));
 		try {
 			Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
 		    String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
 		    InputStream fileContent = filePart.getInputStream();
+		    String hmac=Encryption.hmac(username+fileName+validtill, "boubis12");
+		    StringBody stringBodyFilename = new StringBody(fileName, ContentType.MULTIPART_FORM_DATA);
+		    StringBody stringBodyUsername = new StringBody(username, ContentType.MULTIPART_FORM_DATA);
+		    StringBody stringBodyValidtill = new StringBody(validtill, ContentType.MULTIPART_FORM_DATA);
+		    StringBody stringBodyHMAC = new StringBody(hmac, ContentType.MULTIPART_FORM_DATA);
+		    System.out.println(fileName);
+		    System.out.println(username);
+		    System.out.println(validtill);
+		    System.out.println(hmac);
 			HttpEntity entity = MultipartEntityBuilder.create()
 			        .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
 			        .setCharset(Charset.forName(CHARSET))
 			        .addBinaryBody("file", fileContent, ContentType.MULTIPART_FORM_DATA, fileName)
-			        .addTextBody("text", fileName)
+			        .addPart("fileid", stringBodyFilename)
+			        .addPart("userid", stringBodyUsername)
+			        .addPart("validtill", stringBodyValidtill)
+			        .addPart("hmac", stringBodyHMAC)
 			        .build();
 			
-			Content content = Request.Post("http://localhost:8080/DirectoryService/test")
-			        .connectTimeout(2000)
-			        .socketTimeout(2000)
+			Content content = Request.Post("http://localhost:8080/FileService/FileServiceApi")
+			        .connectTimeout(20000)
+			        .socketTimeout(20000)
 			        .body(entity)
 			        .execute().returnContent();
-					return content.asStream();
+			System.out.println(content.asString());
+					return new JSONObject(content.asString());
 			
 		} catch (IOException e) {
-			JSONObject token= new JSONObject();
-			token.put("error", e.getMessage());
-			return null;
+			JSONObject resJSON= new JSONObject();
+			resJSON.put("error", e.getMessage());
+			e.printStackTrace();
+			return resJSON;
 		} catch (ServletException e) {
-			JSONObject token= new JSONObject();
-			token.put("error", e.getMessage());
-			return null;
-		}
-	}
+			JSONObject resJSON= new JSONObject();
+			resJSON.put("error", e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		} catch (InvalidKeyException e) {
+			JSONObject resJSON=new JSONObject();
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		} catch (NoSuchAlgorithmException e) {
+			JSONObject resJSON=new JSONObject();
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		}	
+}
 }
 
 
