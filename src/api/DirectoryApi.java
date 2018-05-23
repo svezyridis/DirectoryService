@@ -22,6 +22,7 @@ import javax.servlet.jsp.PageContext;
 
 import org.json.JSONObject;
 import crypto.Token;
+import crypto.Validator;
 import images.Comments;
 import images.Gallery;
 import images.Image;
@@ -49,12 +50,12 @@ public class DirectoryApi extends HttpServlet {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
 		request.setCharacterEncoding("UTF-8");
-		
+		PrintWriter out = response.getWriter();
 		response.setContentType("application/json;charset=UTF-8");
 		
 		String JSONString=request.getParameter("token");
 		if (JSONString.equals("")) {
-			PrintWriter out = response.getWriter();
+			
 			JSONObject resJSON = new JSONObject();
 			resJSON.put("error","no token found");
 			out.print(resJSON);
@@ -69,19 +70,26 @@ public class DirectoryApi extends HttpServlet {
 		try {
 			token = Token.getDecryptedToken(cryptedJSONString);
 		} catch (GeneralSecurityException e) {
-			PrintWriter out = response.getWriter();
+			
 			JSONObject resJSON = new JSONObject();
 			resJSON.put("error","token could not be decrypted");
 			out.print(resJSON);
 			out.flush();
 			return;
 		}
-		
+		int validtill=token.getInt("validtill");
+		if(!Validator.validatetime(validtill)) {
+			JSONObject resJSON = new JSONObject();
+			resJSON.put("error","token has expired");
+			out.print(resJSON);
+			out.flush();
+			return;
+		}
 		String username=CheckNewUser.checkIfnewAndadd(token);
 		String action=request.getParameter("action");
 		
 		if (action.equals("addFriend")){
-			PrintWriter out = response.getWriter();
+		
 			String friend=request.getParameter("friendname");
 			JSONObject resJSON = Friends.addFriend(username, friend);
 			out.print(resJSON);
@@ -89,7 +97,7 @@ public class DirectoryApi extends HttpServlet {
 			return;
 		}
 		else if(action.equals("deleteFriend")) {
-			PrintWriter out = response.getWriter();
+			
 			String friend=request.getParameter("friendname");
 			JSONObject resJSON = Friends.deleteFriend(username, friend);
 			out.print(resJSON);
@@ -97,21 +105,21 @@ public class DirectoryApi extends HttpServlet {
 			return;	
 		}
 		else if(action.equals("getFriends")) {
-			PrintWriter out = response.getWriter();
+			
 			JSONObject resJSON = Friends.getFriends(username);
 			out.print(resJSON);
 			out.flush();
 			return;	
 		}
 		else if(action.equals("getMyGalleries")) {
-			PrintWriter out = response.getWriter();
+		
 			JSONObject resJSON = Gallery.getUserGalleries(username);
 			out.print(resJSON);
 			out.flush();
 			return;	
 		}
 		else if(action.equals("getFriendGalleries")) {
-			PrintWriter out = response.getWriter();
+			
 			String friendname =request.getParameter("friendname");
 			JSONObject resJSON = Gallery.getFriendGalleries(username, friendname);
 			out.print(resJSON);
@@ -119,7 +127,7 @@ public class DirectoryApi extends HttpServlet {
 			return;	
 		}
 		else if(action.equals("createGallery")) {
-			PrintWriter out = response.getWriter();
+			
 			String galleryname=request.getParameter("galleryname");
 			JSONObject resJSON = Gallery.createGallery(username, galleryname);
 			out.print(resJSON);
@@ -128,7 +136,7 @@ public class DirectoryApi extends HttpServlet {
 			
 		}
 		else if(action.equals("deleteGallery")) {
-			PrintWriter out = response.getWriter();
+			
 			String galleryname=request.getParameter("galleryname");
 			JSONObject resJSON = Gallery.deleteGallery(username, galleryname);
 			out.print(resJSON);
@@ -137,7 +145,7 @@ public class DirectoryApi extends HttpServlet {
 			
 		}
 		else if(action.equals("deleteImage")) {
-			PrintWriter out = response.getWriter();
+			
 			String imageid=request.getParameter("imageid");
 			JSONObject resJSON = Image.deleteImage(username, imageid);
 			out.print(resJSON);
@@ -146,7 +154,7 @@ public class DirectoryApi extends HttpServlet {
 			
 		}
 		else if(action.equals("postComment")) {
-			PrintWriter out = response.getWriter();
+			
 			String imageid=request.getParameter("imageid");
 			String comment=request.getParameter("comment");			
 			JSONObject resJSON = Comments.postComment(username,imageid,comment);
@@ -155,7 +163,7 @@ public class DirectoryApi extends HttpServlet {
 			return;		
 		}
 		else if(action.equals("getGallery")) {
-			PrintWriter out = response.getWriter();
+			
 			String galleryid=request.getParameter("galleryid");			
 			JSONObject resJSON = Image.getImages(username, galleryid);
 			out.print(resJSON);
@@ -164,7 +172,6 @@ public class DirectoryApi extends HttpServlet {
 		}
 		else if(action.equals("postImage")) {
 			JSONObject resJSON =Image.postImage(username, request);
-			PrintWriter out = response.getWriter();
 			out.print(resJSON);
 			out.flush();
 			int i=0;
@@ -193,14 +200,7 @@ public class DirectoryApi extends HttpServlet {
 		    }*/
 			return;
 		}
-		else if(action.equals("test")) {
-			String nonce=request.getParameter("comment");
-			Configuration instance=zookeeper.Configuration.getInstance();
-			instance.AddNode(nonce);
-		
-	
-		}
-			
+
 		response.getWriter().append("Served at: ").append(request.getContextPath());
 	}
 

@@ -1,44 +1,47 @@
 package storage;
 
+
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.security.GeneralSecurityException;
+import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Map;
-import java.util.UUID;
+
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import images.Image;
+
 public class Storage {
 	
-	public static String getServiceURL(int imageid) {
-		String identifier=FileServices.getRandomID(imageid);
+	public static Map getService(int imageid) {
+		System.out.println("Searching service for image:"+String.valueOf(imageid));
+		String identifier=FileServices.getRandomAvailableServiceID(imageid);
+		System.out.println(identifier+" WAS CHOSEN");
 		if (identifier!= null) {
 			Map fileservice=FileServices.getFileService(identifier);
-			String URL=fileservice.get("URL").toString();
-			return "http://localhost:8080/FileService/FileServiceApi";
+			
+			return fileservice;
 		}
-		return "http://localhost:8080/FileService/FileServiceApi";
+		return null;
 		
 	}
 	
-	public static void getRandomFileServiceURL() {
-		
-	}
-	public static String getURL(int imageid) {
-		String serviceURL=getServiceURL(imageid);
-		String userid="savvas";
+	public static String getURL(int imageid) throws IllegalStateException, UnsupportedEncodingException {
+		Map fileservice=getService(imageid);
+		String serviceURL=fileservice.get("URL").toString();
+		String userid=Image.getImageOwnerUsername(imageid);
 		String validtill="now";	
-		SecretKeySpec hks = new SecretKeySpec(Base64.getDecoder().decode("boubis12"), "HmacSHA256");
+		SecretKeySpec hks = new SecretKeySpec(Base64.getDecoder().decode(fileservice.get("keybase64").toString()), "HmacSHA256");
 		Mac m;
 		try {
 			m = Mac.getInstance("HmacSHA256");
 			m.init(hks);
-			byte[] hmac = m.doFinal(Base64.getDecoder().decode(imageid+userid+validtill));
+			byte[] hmac = m.doFinal((imageid+userid+validtill).getBytes("UTF-8"));
 			String hmachash=Base64.getEncoder().encodeToString(hmac);
+			hmachash=URLEncoder.encode(hmachash, "UTF-8");
 			String url=serviceURL+"?fileid="+imageid+"&userid="+userid+"&validtill="+validtill+"&hmac="+hmachash;
 			return url;
 		
@@ -52,11 +55,6 @@ public class Storage {
 		return null;
 }
 	
-	
-	 public static String generateString() {
-	       String uuid = UUID.randomUUID().toString();
-	       return "uuid = " + uuid;
-	   }
 	
 
 }

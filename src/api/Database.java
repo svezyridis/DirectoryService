@@ -5,7 +5,7 @@ public class Database {
 	static Connection conn=null;
 	static PreparedStatement stmt=null;
 	public static String getURL() {
-		return "jdbc:mysql://localhost/DIRSERVICE";
+		return "jdbc:mariadb://localhost/DIRSERVICE";
 	}
 	
 	public static String getUsername() {
@@ -16,7 +16,7 @@ public class Database {
 		return "root";
 	}
 	
-	static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";    
+	static final String JDBC_DRIVER = "org.mariadb.jdbc.Driver";    
 	 
 	 //  Database credentials
 	 static final String USER = Database.getUsername();
@@ -25,9 +25,10 @@ public class Database {
 	 public static Connection getConnection() throws ClassNotFoundException, SQLException{
 		 final String DB_URL = Database.getURL();
      try {
-			Class.forName("com.mysql.jdbc.Driver");
+			Class.forName(JDBC_DRIVER);
 	
 		Connection	conn = DriverManager.getConnection(DB_URL, USER, PASS);
+	
 		return conn;
 	     } catch (ClassNotFoundException ClassNotFound) {
 				// TODO Auto-generated catch block

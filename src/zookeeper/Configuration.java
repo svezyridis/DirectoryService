@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ import storage.FileServices;
 public class Configuration implements ServletContextListener {
 	private static  List<String> zookeeperIPs = new ArrayList<String>();
 	private String host="";
-	private static  String myip;
+	private static String myip;
 	private static String identifier;
 	private static String secretkey;
 	private static String name;
@@ -106,7 +107,7 @@ public class Configuration implements ServletContextListener {
 		});
 		connectedSignal.await();
 		
-		//zk.addAuthInfo("digest", new String(zoouser+":"+zoopass).getBytes());
+		zk.addAuthInfo("digest", new String(zoouser+":"+zoopass).getBytes());
 		
 		System.out.println("finished zooConnect");
 
@@ -157,6 +158,7 @@ class FsWatcher implements Watcher {
 		catch (InterruptedException ex) {
 			System.err.println("getStatusText InterruptedException");
 		}
+		FileServices.updateDB();
 		
 	}
 	public void ReadConfigurationFile() {
@@ -190,6 +192,8 @@ class FsWatcher implements Watcher {
 	            instance.identifier=classElement.getChild("identifier").getValue();    
 	            instance.secretkey=classElement.getChild("key").getValue();
 	            instance.name=classElement.getChild("name").getValue();
+	            instance.myip=classElement.getChild("hostname").getValue();
+	            
 	        
 
 	            
@@ -200,51 +204,24 @@ class FsWatcher implements Watcher {
 	         }
 		
 	}
-	public void AddNode(String nonce){
-		Configuration instance=getInstance();
-		JSONObject configJSON=new JSONObject();
-	       configJSON.put("URL", instance.myip);
-	       configJSON.put("key", instance.secretkey);
-	       configJSON.put("id", instance.identifier);
-	       try {
-			instance.zoo.create(dirpath+"/"+identifier+nonce, configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
-						CreateMode.EPHEMERAL);
-		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
 	public void PublishService(ServletContextEvent sce) {
 		Configuration instance=getInstance();
-		ACL acl = new ACL();
+		ACL acl = null;
 		try {
-			String base64EncodedSHA1Digest = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA1").
-					digest((zoopass).getBytes()));
-			acl.setPerms(ZooDefs.Perms.ALL);
-			acl.setId(new Id("digest",zoouser+":"+base64EncodedSHA1Digest));
+			String base64EncodedSHA1Digest = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA1").digest((zoouser+":"+zoopass).getBytes()));
+			acl = new ACL(ZooDefs.Perms.ALL, new Id("digest",zoouser+":" + base64EncodedSHA1Digest));
 		}
 		catch (NoSuchAlgorithmException ex) {
 			System.err.println("destroy NoSuchAlgorithmException");
 		}
-		List<ACL> aclList=new ArrayList<ACL>();
-		aclList.add(acl);
 		
-	       try {
-			instance.myip= InetAddress.getLocalHost().toString();
-			instance.myip=instance.myip+"/"+sce.getServletContext().getServletContextName();
-			System.out.println(instance.myip);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	     
 	       JSONObject configJSON=new JSONObject();
-	       configJSON.put("URL", instance.myip);
+	     
 	       configJSON.put("key", instance.secretkey);
 	       configJSON.put("id", instance.identifier);
 	       configJSON.put("name", instance.name);
+	       configJSON.put("URL", instance.myip);
 	       
 	       System.out.println("publishing service");  
 	       try {
@@ -254,7 +231,7 @@ class FsWatcher implements Watcher {
 				instance.zoo.create(dirpath, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
 						CreateMode.PERSISTENT);
 			}
-			instance.zoo.create(dirpath+"/"+identifier+"2", configJSON.toString().getBytes(),ZooDefs.Ids.OPEN_ACL_UNSAFE,
+			instance.zoo.create(dirpath+"/"+identifier, configJSON.toString().getBytes(),Arrays.asList(acl),
 					CreateMode.EPHEMERAL);
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block

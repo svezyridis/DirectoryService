@@ -2,6 +2,7 @@ package images;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -10,9 +11,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -31,7 +34,9 @@ import org.json.JSONObject;
 import api.Database;
 import api.Friends;
 import crypto.Encryption;
+import storage.FileServices;
 import storage.Storage;
+import zookeeper.Configuration;
 
 
 public class Image {
@@ -58,6 +63,20 @@ public class Image {
 			e.printStackTrace();
 			return 0;
 		}
+		 finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
 		 return 0;
 		
 	}
@@ -171,6 +190,12 @@ public class Image {
 		} catch (ClassNotFoundException e) {
 			resJSON.put("error", e.getMessage());
 			return resJSON;
+		} catch (IllegalStateException e) {
+			resJSON.put("error", e.getMessage());
+			return resJSON;
+		} catch (UnsupportedEncodingException e) {
+			resJSON.put("error", e.getMessage());
+			return resJSON;
 		}
 		finally{
 		      //finally block used to close resources
@@ -189,13 +214,78 @@ public class Image {
 		
 	}
 	public static JSONObject postImage(String username,HttpServletRequest request) {
-		String validtill=Integer.toString((int)(System.currentTimeMillis()/1000));
+	
+		int userid=Database.getUserID(username);
+		String galleryid=request.getParameter("galleryid");
+		JSONObject resJSON=new JSONObject();
+		if(galleryid==null || galleryid.equals("")) {
+			resJSON.put("error", "invalid gallery id");
+			return resJSON;
+		}
+		int glryid=Integer.parseInt(galleryid);
+		int owner=Gallery.getOwner(glryid);
 		try {
+			conn=Database.getConnection();
+			
+				 if (userid!=owner) {
+					 resJSON.put("error", "You are not the owner of this gallery");
+						return resJSON;
+				 }
+				 System.out.println("Inserting records into the table...");
+				 String insertString = "INSERT INTO IMAGES"
+					+ "(GALLERY) VALUES"
+					+ "(?)";
+				 stmt = conn.prepareStatement(insertString);
+				 stmt.setInt(1, glryid);
+				 stmt.executeUpdate();
+				 System.out.println("Inserted records into the table...");	
+				 
+			
+		} catch (ClassNotFoundException e) {
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		} catch (SQLException e) {
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		}
+		
+		
+		
+		
+		String validtill=Integer.toString((int)(System.currentTimeMillis()/1000));
+		List<Map> systems=FileServices.getAvaliableServicesSubset(2);
+	
+		Content content;
+		for (Map system:systems) {
+			System.out.println("Connecting with fs "+system.get("URL").toString());
+		try {
+			conn=Database.getConnection();
+			Statement st = conn.createStatement();			
+			ResultSet rs = st.executeQuery("SELECT MAX(IMAGEID) from IMAGES");			
+			rs.next();	
+			int lastid = rs.getInt(1);
+			System.out.println(String.valueOf(lastid));
 			Part filePart = request.getPart("file"); // Retrieves <input type="file" name="file">
 		    String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
 		    InputStream fileContent = filePart.getInputStream();
-		    String hmac=Encryption.hmac(username+fileName+validtill, "boubis12");
-		    StringBody stringBodyFilename = new StringBody(fileName, ContentType.MULTIPART_FORM_DATA);
+		    String hmac=Encryption.hmac(String.valueOf(lastid)+username+validtill, system.get("keybase64").toString());
+		    StringBody stringBodyFilename = new StringBody(String.valueOf(lastid), ContentType.MULTIPART_FORM_DATA);
 		    StringBody stringBodyUsername = new StringBody(username, ContentType.MULTIPART_FORM_DATA);
 		    StringBody stringBodyValidtill = new StringBody(validtill, ContentType.MULTIPART_FORM_DATA);
 		    StringBody stringBodyHMAC = new StringBody(hmac, ContentType.MULTIPART_FORM_DATA);
@@ -213,36 +303,120 @@ public class Image {
 			        .addPart("hmac", stringBodyHMAC)
 			        .build();
 			
-			Content content = Request.Post("http://localhost:8080/FileService/FileServiceApi")
+					content = Request.Post(system.get("URL").toString())
 			        .connectTimeout(20000)
 			        .socketTimeout(20000)
 			        .body(entity)
 			        .execute().returnContent();
-			System.out.println(content.asString());
-					return new JSONObject(content.asString());
 			
-		} catch (IOException e) {
-			JSONObject resJSON= new JSONObject();
+					
+					
+					System.out.println(content.asString());
+								
+					
+					JSONObject response=new JSONObject(content.asString());
+					if(!response.getString("error").equals("")) {
+				
+						String deleteString = "DELETE FROM IMAGES WHERE IMAGEID = ?  ";
+						stmt = conn.prepareStatement(deleteString);
+						stmt.setInt(1, lastid);
+						stmt.executeUpdate();
+						return new JSONObject(content.asString());
+					}
+			
+			System.out.println("Inserting records into the table...");
+			 String insertString = "INSERT INTO FS_IMG"
+				+ "(IMAGEID, FILESERVICEID) VALUES"
+				+ "(?,?)";
+			 stmt = conn.prepareStatement(insertString);
+			 stmt.setInt(1, lastid);
+			 stmt.setString(2, system.get("identifier").toString());
+			 stmt.executeUpdate();
+			 System.out.println("Inserted records into the table...");	
+						
+			
+			
+		} catch (IOException e) {			
 			resJSON.put("error", e.getMessage());
 			e.printStackTrace();
 			return resJSON;
-		} catch (ServletException e) {
-			JSONObject resJSON= new JSONObject();
+		} catch (ServletException e) {			
 			resJSON.put("error", e.getMessage());
 			e.printStackTrace();
 			return resJSON;
-		} catch (InvalidKeyException e) {
-			JSONObject resJSON=new JSONObject();
+		} catch (InvalidKeyException e) {		
 			resJSON.put("error",e.getMessage());
 			e.printStackTrace();
 			return resJSON;
-		} catch (NoSuchAlgorithmException e) {
-			JSONObject resJSON=new JSONObject();
+		} catch (NoSuchAlgorithmException e) {;
 			resJSON.put("error",e.getMessage());
 			e.printStackTrace();
 			return resJSON;
-		}	
+		} catch (ClassNotFoundException e) {
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		} catch (SQLException e) {
+			resJSON.put("error",e.getMessage());
+			e.printStackTrace();
+			return resJSON;
+		}
+		finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		}
+	 }
+		resJSON.put("error","");
+		return resJSON;	
 }
+	
+	
+	public static String getImageOwnerUsername(int imageid) {
+		 try {
+			conn=Database.getConnection();
+		 
+		 String selectString = "SELECT * FROM IMAGES "
+		 		+ "INNER JOIN GALLERIES ON GALLERY = GALLERYID "
+				 +"INNER JOIN USERS ON OWNER=USERID "
+		 		+ "WHERE IMAGEID = ?"; 
+		 stmt = conn.prepareStatement(selectString);
+		 stmt.setInt(1, imageid);
+		 ResultSet rs =stmt.executeQuery();
+		 if (rs.next()) {
+			 return rs.getString("USERNAME");
+		 }
+			
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+		 finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
+		 return null;
+		
+	}
 }
 
 
