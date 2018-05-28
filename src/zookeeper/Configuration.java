@@ -58,6 +58,21 @@ public class Configuration implements ServletContextListener {
 	private List<Map> Systems=new ArrayList<Map>();
 	final CountDownLatch connectedSignal = new CountDownLatch(1);
 	private static Configuration ConfInstance = null;
+	private static String DBURL;
+	private static String DBUSER;
+	private static String DBPASS;
+	public static String getDBURL() {
+		Configuration instance = getInstance();
+		return instance.DBURL;
+	}
+	public static String getDBUSER() {
+		Configuration instance = getInstance();
+		return instance.DBUSER;
+	}
+	public static String getDBPASS() {
+		Configuration instance = getInstance();
+		return instance.DBPASS;
+	}
 	
 	public static List<Map> getAvailableFs() {
 		Configuration instance = getInstance();
@@ -193,6 +208,9 @@ class FsWatcher implements Watcher {
 	            instance.secretkey=classElement.getChild("key").getValue();
 	            instance.name=classElement.getChild("name").getValue();
 	            instance.myip=classElement.getChild("hostname").getValue();
+	            instance.DBURL=classElement.getChild("dburl").getValue();
+	            instance.DBUSER=classElement.getChild("dbuser").getValue();
+	            instance.DBPASS=classElement.getChild("dbpass").getValue();
 	            
 	        
 

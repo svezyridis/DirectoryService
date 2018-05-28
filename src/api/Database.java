@@ -1,19 +1,21 @@
 package api;
 import java.sql.*;
 
+import zookeeper.Configuration;
+
 public class Database {
 	static Connection conn=null;
 	static PreparedStatement stmt=null;
 	public static String getURL() {
-		return "jdbc:mariadb://localhost/DIRSERVICE";
+		return Configuration.getDBURL();
 	}
 	
 	public static String getUsername() {
-		return "savvas";
+		return Configuration.getDBUSER();
 	}
 	
 	public static String getPassword() {
-		return "root";
+		return Configuration.getDBPASS();
 	}
 	
 	static final String JDBC_DRIVER = "org.mariadb.jdbc.Driver";    

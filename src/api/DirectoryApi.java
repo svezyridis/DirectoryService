@@ -31,7 +31,7 @@ import zookeeper.Configuration;
 /**
  * Servlet implementation class DirectoriApi
  */
-@WebServlet("/DirectoriApi")
+@WebServlet("/DirectoryApi")
 @MultipartConfig
 public class DirectoryApi extends HttpServlet {
 	private static final long serialVersionUID = 1L;
@@ -100,6 +100,14 @@ public class DirectoryApi extends HttpServlet {
 			
 			String friend=request.getParameter("friendname");
 			JSONObject resJSON = Friends.deleteFriend(username, friend);
+			out.print(resJSON);
+			out.flush();
+			return;	
+		}
+		else if(action.equals("getUsername")) {
+			JSONObject resJSON =new JSONObject();
+			resJSON.put("username", username);
+			resJSON.put("error", "");
 			out.print(resJSON);
 			out.flush();
 			return;	
