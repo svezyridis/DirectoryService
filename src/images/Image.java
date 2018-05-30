@@ -417,6 +417,20 @@ public class Image {
 		 return null;
 		
 	}
+	
+	public static JSONObject getComments(String username, String imageid) {
+		int image = Integer.parseInt(imageid);
+		int owner=getImageOwner(image);
+		int userid=Database.getUserID(username);
+		JSONObject resJSON=new JSONObject();
+		if(Friends.isFriend(owner, userid) || userid==owner) {
+			resJSON.put("comments", Comments.getComments(image));
+			resJSON.put("error","");
+			return resJSON;
+		}
+		resJSON.put("error", "You don't have access rights to this image");
+		return resJSON;
+	}
 }
 
 

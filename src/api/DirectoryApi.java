@@ -178,6 +178,14 @@ public class DirectoryApi extends HttpServlet {
 			out.flush();
 			return;		
 		}
+	else if(action.equals("getComments")) {
+			
+			String imageid=request.getParameter("imageid");			
+			JSONObject resJSON = Image.getComments(username, imageid);
+			out.print(resJSON);
+			out.flush();
+			return;		
+		}
 		else if(action.equals("postImage")) {
 			JSONObject resJSON =Image.postImage(username, request);
 			out.print(resJSON);
