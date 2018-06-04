@@ -33,7 +33,7 @@ public class Storage {
 		Map fileservice=getService(imageid);
 		String serviceURL=fileservice.get("URL").toString();
 		String userid=Image.getImageOwnerUsername(imageid);
-		String validtill="now";	
+		String validtill=String.valueOf((int)(System.currentTimeMillis()/1000));	
 		SecretKeySpec hks = new SecretKeySpec(Base64.getDecoder().decode(fileservice.get("keybase64").toString()), "HmacSHA256");
 		Mac m;
 		try {

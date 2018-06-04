@@ -22,6 +22,8 @@ import javax.servlet.http.Part;
 import javax.servlet.jsp.PageContext;
 
 import org.json.JSONObject;
+
+import crypto.Encryption;
 import crypto.Token;
 import crypto.Validator;
 import images.Comments;
@@ -66,11 +68,12 @@ public class DirectoryApi extends HttpServlet {
 			return;
 		}
 
-		JSONObject token = new JSONObject(JSONString);
-		String cryptedJSONString = token.getString("crypted");
+		JSONObject reqtoken = new JSONObject(JSONString);
+		JSONObject token = new JSONObject();
+		String cryptedJSONString = reqtoken.getString("crypted");
 		// Decrypt token
 		try {
-			token = Token.getDecryptedToken(cryptedJSONString);
+			token = Token.getDecryptedToken(cryptedJSONString,reqtoken.getString("issuer"));
 		} catch (GeneralSecurityException e) {
 
 			JSONObject resJSON = new JSONObject();
@@ -181,6 +184,7 @@ public class DirectoryApi extends HttpServlet {
 
 			String galleryid = request.getParameter("galleryid");
 			JSONObject resJSON = Image.getImages(username, galleryid);
+			resJSON.put("owner", Database.getUsername((Gallery.getOwner(Integer.parseInt(galleryid)))));
 			out.print(resJSON);
 			out.flush();
 			return;

@@ -246,7 +246,7 @@ class FsWatcher implements Watcher {
 			Stat stat = instance.zoo.exists(dirpath, false);
 			if(stat==null) {
 				System.out.println("Node does not exist, creating node");
-				instance.zoo.create(dirpath, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+				instance.zoo.create(dirpath, "".getBytes(), Arrays.asList(acl),
 						CreateMode.PERSISTENT);
 			}
 			instance.zoo.create(dirpath+"/"+identifier, configJSON.toString().getBytes(),Arrays.asList(acl),

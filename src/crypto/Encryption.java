@@ -3,6 +3,11 @@ import java.io.UnsupportedEncodingException;
 import java.security.*;
 import java.util.*;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.json.JSONObject;
+
+import zookeeper.Configuration;
+
 import javax.crypto.*;
 import javax.crypto.spec.*;
 
@@ -57,6 +62,30 @@ public class Encryption {
 		byte[] plainTextBytes=plainText.getBytes("UTF-8");
 		byte[] hmac = m.doFinal(plainTextBytes);
 		return Base64.getEncoder().encodeToString(hmac);
+	}
+
+
+	public static String newCrypted(JSONObject token) {
+		token.remove("validtill");
+		token.put("validtill", (int)(System.currentTimeMillis()/1000));
+		String sharedKeyBase64 = Configuration.getKey(); 
+		byte[] sharedKey = Base64.getDecoder().decode(sharedKeyBase64);
+		String cipher = "AES/CBC/PKCS5Padding";
+
+		try {
+			String crypted = Encryption.encrypt(token.toString(), sharedKey, cipher);
+			return crypted;
+		} catch (UnsupportedEncodingException e) {
+			
+			e.printStackTrace();
+			return null;
+		} catch (GeneralSecurityException e) {
+			
+			e.printStackTrace();
+			return null;
+		}
+		
+	
 	}
 
 

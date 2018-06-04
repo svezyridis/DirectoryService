@@ -13,6 +13,43 @@ public class Database {
 	public static String getUsername() {
 		return Configuration.getDBUSER();
 	}
+	public static String getUsername(int userid) {
+		try {
+			Connection conn=getConnection();
+			String selectString = "SELECT USERNAME FROM USERS "
+			 		+ "WHERE USERID = ?"; 
+			 stmt = conn.prepareStatement(selectString);
+			 stmt.setInt(1, userid);
+			 ResultSet rs =stmt.executeQuery();
+			 if (rs.next()) {
+				 return rs.getString("USERNAME");
+			 }
+			 return "";
+		} catch (ClassNotFoundException e) {
+		
+			e.printStackTrace();
+			return "";
+		} catch (SQLException e) {
+			
+			e.printStackTrace();
+			return "";
+		}
+		 finally{
+		      //finally block used to close resources
+		      try{
+		         if(stmt!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		      }
+		      try{
+		         if(conn!=null)
+		            conn.close();
+		      }catch(SQLException se){
+		         se.printStackTrace();
+		      }
+		   }
+	
+	}
 	
 	public static String getPassword() {
 		return Configuration.getDBPASS();

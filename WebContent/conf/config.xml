@@ -8,13 +8,14 @@
 		<authservicepath>/AuthServices</authservicepath>
 		<storageservicepath>/StorageServices</storageservicepath>
 		<zoouser>savvas</zoouser>
-		<zoopass>savvas</zoopass>
+		<zoopass>savvaspass</zoopass>
 	</zookeeper>
 	<dburl>jdbc:mariadb://localhost/DIRSERVICE</dburl>
 	<dbuser>savvas</dbuser>
-	<dbpass>root</dbpass>
-	<identifier>DIRID</identifier>
-	<key>7vjTsO0IhSZsNA6ze37Dk/xXw2nphFM9ZAMUkwXgaAA=</key>
+	<dbpass>rodakino12</dbpass>
+	<identifier>SVDIRID</identifier>
+	<instakey>BHTecPmSozojY07+SccC+HFNGZ9H7TFbwl+gis31cOg=</instakey>
+	<skkey>7vjTsO0IhSZsNA6ze37Dk/xXw2nphFM9ZAMUkwXgaAA=</skkey>
 	<name>name</name>
 	<hostname>https://snf-815309.vm.okeanos.grnet.gr:8443/DirectoryService/DirectoryApi</hostname>
 </settings>

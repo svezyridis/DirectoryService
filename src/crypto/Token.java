@@ -7,7 +7,7 @@ import java.util.Base64;
 import org.json.JSONObject;
 
 public class Token {
-	public static JSONObject getDecryptedToken(String JSONString) throws GeneralSecurityException,UnsupportedEncodingException,IllegalArgumentException  {
+	public static JSONObject getDecryptedToken(String JSONString,String issuer) throws GeneralSecurityException,UnsupportedEncodingException,IllegalArgumentException  {
 
 		String sharedKeyBase64 = zookeeper.Configuration.getKey(); 
 		byte[] sharedKey = Base64.getDecoder().decode(sharedKeyBase64);
